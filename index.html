@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="et">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f7f8fc">
+  <meta name="description" content="Deadline – lihtne tudengi tähtaegade jälgija. Eksamitööde, kodutööde ja projektide tähtajad ühes kohas.">
+  <meta name="color-scheme" content="light">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; upgrade-insecure-requests">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <title>Deadline – Sinu tähtajad kontrolli all</title>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Rakenduse menüü">
+      <a class="brand" href="./" aria-label="Deadline avaleht">
+        <span class="brand-mark" aria-hidden="true"><span class="brand-mark-calendar"></span><span class="brand-mark-check">✓</span></span>
+        <span class="brand-name">deadline<span class="brand-dot">.</span></span>
+      </a>
+      <div class="sidebar-inner">
+        <p class="nav-label">TÖÖLAUD</p>
+        <nav class="side-nav" aria-label="Vaated">
+          <button type="button" class="nav-link active" data-view="list" aria-current="page"><span data-icon="layout-dashboard"></span><span>Ülevaade</span></button>
+          <button type="button" class="nav-link" data-view="calendar"><span data-icon="calendar-days"></span><span>Kalender</span></button>
+        </nav>
+        <p class="nav-label nav-label-secondary">MINU TÄHTAJAD</p>
+        <nav class="side-nav" aria-label="Ülesannete filtrid">
+          <button type="button" class="nav-link filter-link" data-filter-type="all"><span data-icon="layers"></span><span>Kõik ülesanded</span><span class="nav-count" id="navAll">0</span></button>
+          <button type="button" class="nav-link filter-link" data-filter-type="exam"><span data-icon="graduation-cap"></span><span>Eksamid</span><span class="nav-count" id="navExams">0</span></button>
+          <button type="button" class="nav-link filter-link" data-filter-type="homework"><span data-icon="book-open"></span><span>Kodutööd</span><span class="nav-count" id="navHomework">0</span></button>
+          <button type="button" class="nav-link filter-link" data-filter-type="project"><span data-icon="briefcase-business"></span><span>Projektid</span><span class="nav-count" id="navProjects">0</span></button>
+        </nav>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="sidebar-tip">
+          <div class="tip-icon"><span data-icon="sparkles"></span></div>
+          <strong>Vähem stressi, rohkem tehtud.</strong>
+          <p>Pane tähtajad kirja ja näe kohe, mis vajab tähelepanu.</p>
+        </div>
+        <div class="sidebar-links">
+          <button type="button" id="exportBackup" title="Salvesta varukoopia"><span data-icon="download"></span> Varukoopia</button>
+          <button type="button" id="importBackup" title="Taasta varukoopiast"><span data-icon="upload"></span> Taasta</button>
+        </div>
+        <button class="secure-backup-link" type="button" id="openSecureBackup"><span aria-hidden="true">🔒</span> Krüptitud varukoopia</button>
+        <button class="secure-backup-link" type="button" id="openSecureRestore">Taasta krüptitud koopia</button>
+        <p class="storage-note"><span data-icon="shield-check"></span> 1.1 · Andmed sinu seadmes (krüpteerimata)</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-text"><span class="eyebrow">SINU ÕPINGUTE TÖÖLAUD</span><h1>Tere! <span class="wave">✳</span></h1></div>
+        <div class="topbar-actions"><p id="todayLabel" class="today-label"></p><button class="btn btn-primary desktop-add" id="openAddTop" type="button"><span data-icon="plus"></span> Lisa tähtaeg</button></div>
+      </header>
+
+      <section class="hero" aria-labelledby="heroTitle">
+        <div class="hero-content">
+          <span class="hero-eyebrow"><span class="hero-dot"></span> HOIA ÕPINGUD JÄRJE PEAL</span>
+          <h2 id="heroTitle">Kõik tähtajad.<br><em>Üks selge plaan.</em></h2>
+          <p id="heroDescription">Lisa oma eksamid, kodutööd ja projektid. Näed kohe, millele keskenduda.</p>
+          <button class="hero-add" id="openAddHero" type="button">Lisa esimene tähtaeg <span data-icon="arrow-up-right"></span></button>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
+          <div class="floating-card floating-card-back"><span class="fc-line shorter"></span><span class="fc-line"></span><span class="fc-line small"></span></div>
+          <div class="floating-card floating-card-front"><div class="fc-date"><span id="heroArtMonth">NOV</span><strong id="heroArtDay">23</strong></div><span class="fc-check">✓</span></div>
+          <div class="art-sparkle sparkle-one">✦</div><div class="art-sparkle sparkle-two">✧</div>
+        </div>
+      </section>
+
+      <section class="stats" aria-label="Ülesannete statistika">
+        <article class="stat-card stat-urgent"><div class="stat-header"><span>Hilinenud</span><span class="stat-icon"><span data-icon="alert-circle"></span></span></div><div class="stat-value" id="statOverdue">0</div><div class="stat-bottom" id="statOverdueText">Vajavad tähelepanu</div></article>
+        <article class="stat-card stat-today"><div class="stat-header"><span>Täna</span><span class="stat-icon"><span data-icon="clock-3"></span></span></div><div class="stat-value" id="statToday">0</div><div class="stat-bottom">Täna saabuvad tähtajad</div></article>
+        <article class="stat-card stat-soon"><div class="stat-header"><span>Järgmised 7 päeva</span><span class="stat-icon"><span data-icon="calendar-clock"></span></span></div><div class="stat-value" id="statSoon">0</div><div class="stat-bottom">Täna ja lähiajal</div></article>
+        <article class="stat-card stat-done"><div class="stat-header"><span>Tehtud</span><span class="stat-icon"><span data-icon="check-circle-2"></span></span></div><div class="stat-value" id="statDone">0<span class="stat-total" id="statTotal"> / 0</span></div><div class="stat-progress"><span id="progressFill"></span></div></article>
+      </section>
+
+      <section class="workspace" aria-labelledby="workspaceTitle">
+        <div class="section-heading"><div><span class="eyebrow">SINU PLAAN</span><h2 id="workspaceTitle">Minu tähtajad <span class="heading-count" id="headingCount">0</span></h2></div><button class="btn btn-outline" type="button" id="calendarExport"><span data-icon="calendar-plus"></span> <span>Ekspordi kalendrisse</span></button></div>
+        <div class="toolbar">
+          <div class="view-toggle" role="group" aria-label="Vaate valik"><button type="button" class="toggle-btn selected" data-switch-view="list" aria-pressed="true"><span data-icon="list"></span> Loend</button><button type="button" class="toggle-btn" data-switch-view="calendar" aria-pressed="false"><span data-icon="calendar-days"></span> Kalender</button></div>
+          <div class="toolbar-right">
+            <label class="search-box"><span data-icon="search"></span><input id="searchInput" type="search" placeholder="Otsi ülesannet..." autocomplete="off" aria-label="Otsi ülesannet"><kbd>⌕</kbd></label>
+            <label class="status-wrap"><span class="sr-only">Ülesannete olek</span><select id="statusFilter"><option value="all">Kõik olekud</option><option value="active">Tegemisel</option><option value="done">Tehtud</option></select><span data-icon="chevron-down"></span></label>
+          </div>
+        </div>
+        <div id="listView" class="list-view" aria-live="polite"></div>
+        <div id="calendarView" class="calendar-view" hidden></div>
+      </section>
+      <footer class="page-footer"><span>deadline<span class="brand-dot">.</span> — rohkem aega olulisele.</span><span>Töötab ka ilma internetita · <button type="button" id="footerBackup">Salvesta andmed</button></span></footer>
+    </main>
+  </div>
+
+  <button class="mobile-fab" id="openAddMobile" type="button" aria-label="Lisa tähtaeg"><span data-icon="plus"></span></button>
+  <input id="backupInput" type="file" accept=".json,application/json" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden><span class="toast-icon" data-icon="check-circle-2"></span><span id="toastText"></span><button id="toastAction" type="button" hidden>Võta tagasi</button><button id="toastDismiss" type="button" aria-label="Sulge teade"><span data-icon="x"></span></button></div>
+
+  <dialog id="taskDialog" class="task-dialog" aria-labelledby="dialogTitle">
+    <form id="taskForm" method="dialog" novalidate>
+      <div class="dialog-heading"><div><div class="dialog-eyebrow">MINU ÕPINGUD</div><h2 id="dialogTitle">Uus tähtaeg</h2><p id="dialogSubtitle">Lisa midagi, mida tahad õigel ajal valmis saada.</p></div><button type="button" class="icon-btn close-dialog" id="closeDialog" aria-label="Sulge"><span data-icon="x"></span></button></div>
+      <div class="form-body">
+        <label for="taskTitle">Ülesande nimi <span class="required">*</span></label>
+        <input class="form-control" id="taskTitle" name="title" maxlength="120" placeholder="Nt Majanduse eksam" required>
+        <span class="field-error" id="titleError" hidden>Palun sisesta ülesande nimi.</span>
+        <label for="taskCourse">Õppeaine <span class="optional">(valikuline)</span></label>
+        <input class="form-control" id="taskCourse" name="course" maxlength="100" placeholder="Nt Majandusteooria">
+        <div class="form-grid">
+          <div><label for="taskType">Tüüp <span class="required">*</span></label><select class="form-control" id="taskType" name="type"><option value="homework">Kodutöö</option><option value="exam">Eksam</option><option value="project">Projekt</option></select></div>
+          <div><label for="taskDate">Tähtaeg <span class="required">*</span></label><input class="form-control" id="taskDate" name="date" type="date" required><span class="field-error" id="dateError" hidden>Vali tähtaeg.</span></div>
+        </div>
+        <div class="form-grid">
+          <div><label for="taskTime">Kellaaeg <span class="optional">(valikuline)</span></label><input class="form-control" id="taskTime" name="time" type="time"></div>
+          <div class="priority-holder"><label for="taskImportant">Tähtsus</label><label class="important-toggle"><input id="taskImportant" name="important" type="checkbox"><span class="toggle-track" aria-hidden="true"></span><span>Eriliselt oluline</span></label></div>
+        </div>
+        <label for="taskNotes">Märkmed <span class="optional">(valikuline)</span></label><textarea class="form-control notes-input" id="taskNotes" name="notes" rows="3" maxlength="700" placeholder="Mis on vaja ära teha?"></textarea>
+      </div>
+      <div class="dialog-actions"><button class="btn btn-quiet" type="button" id="cancelDialog">Tühista</button><button class="btn btn-primary" type="submit" id="saveTask"><span data-icon="check"></span> Salvesta tähtaeg</button></div>
+    </form>
+  </dialog>
+  <dialog id="secureBackupDialog" class="task-dialog secure-dialog" aria-labelledby="secureBackupTitle">
+    <form id="secureBackupForm">
+      <div class="dialog-heading"><div><div class="dialog-eyebrow">VARUKOOPIA</div><h2 id="secureBackupTitle">Krüptitud varukoopia</h2><p>Varukoopia kaitstakse AES-256-GCM krüpteeringuga. Parool jääb ainult sinu teada.</p></div><button type="button" class="icon-btn close-secure-backup" aria-label="Sulge">×</button></div>
+      <div class="form-body">
+        <label for="backupPassword">Parool (vähemalt 12 märki)</label><input class="form-control" type="password" id="backupPassword" minlength="12" maxlength="200" autocomplete="new-password" required>
+        <label for="backupPasswordConfirm">Korda parooli</label><input class="form-control" type="password" id="backupPasswordConfirm" minlength="12" maxlength="200" autocomplete="new-password" required>
+        <p class="secure-note">Kaotatud parooli ei saa taastada. Kohalikud ülesanded jäävad brauseris krüpteerimata.</p>
+        <p class="secure-error" id="backupError" role="alert" hidden></p>
+      </div>
+      <div class="dialog-actions"><button class="btn btn-quiet close-secure-backup" type="button">Tühista</button><button class="btn btn-primary" id="confirmSecureBackup" type="submit">Salvesta krüptitud fail</button></div>
+    </form>
+  </dialog>
+  <dialog id="secureRestoreDialog" class="task-dialog secure-dialog" aria-labelledby="secureRestoreTitle">
+    <form id="secureRestoreForm">
+      <div class="dialog-heading"><div><div class="dialog-eyebrow">VARUKOOPIA TAASTAMINE</div><h2 id="secureRestoreTitle">Taasta krüptitud koopia</h2><p>Varukoopia taastamine asendab kõik praegused tähtajad.</p></div><button type="button" class="icon-btn close-secure-restore" aria-label="Sulge">×</button></div>
+      <div class="form-body">
+        <label for="encryptedBackupInput">Krüptitud JSON-fail</label><input class="form-control" type="file" id="encryptedBackupInput" accept=".json,application/json" required>
+        <label for="restorePassword">Varukoopia parool</label><input class="form-control" type="password" id="restorePassword" autocomplete="current-password" required>
+        <p class="secure-error" id="restoreError" role="alert" hidden></p>
+      </div>
+      <div class="dialog-actions"><button class="btn btn-quiet close-secure-restore" type="button">Tühista</button><button class="btn btn-primary" id="confirmSecureRestore" type="submit">Taasta ülesanded</button></div>
+    </form>
+  </dialog>
+  <script src="./app.js" defer></script>
+  <script src="./security.js" defer></script>
+</body>
+</html>
