@@ -1,5 +1,5 @@
-const CACHE = 'deadline-offline-v3';
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './security.js', './manifest.webmanifest', './icons/favicon.svg', './icons/icon-192.png', './icons/icon-512.png'];
+const CACHE = 'deadline-offline-v4-gradecalc';
+const ASSETS = ['./', './index.html', './styles.css', './app.js', './security.js', './grade-math.js', './grades.js', './manifest.webmanifest', './icons/favicon.svg', './icons/icon-192.png', './icons/icon-512.png'];
 const assetURLs = new Set(ASSETS.map(path => new URL(path, self.registration.scope).href));
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));

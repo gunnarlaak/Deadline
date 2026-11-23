@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f7f8fc">
-  <meta name="description" content="Deadline – lihtne tudengi tähtaegade jälgija. Eksamitööde, kodutööde ja projektide tähtajad ühes kohas.">
+  <meta name="description" content="Deadline 2.0 – tähtaegade jälgija ja kaalutud hinnete kalkulaator. Eksamitööde, kodutööde ja projektide tähtajad ühes kohas.">
   <meta name="color-scheme" content="light">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; upgrade-insecure-requests">
   <meta name="referrer" content="no-referrer">
@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="./icons/icon-192.png">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="stylesheet" href="./styles.css">
-  <title>Deadline – Sinu tähtajad kontrolli all</title>
+  <title>Deadline 2.0 – tähtajad ja GradeCalc</title>
 </head>
 <body>
   <div class="app-shell">
@@ -26,6 +26,7 @@
         <nav class="side-nav" aria-label="Vaated">
           <button type="button" class="nav-link active" data-view="list" aria-current="page"><span data-icon="layout-dashboard"></span><span>Ülevaade</span></button>
           <button type="button" class="nav-link" data-view="calendar"><span data-icon="calendar-days"></span><span>Kalender</span></button>
+          <button type="button" class="nav-link" data-view="grades" title="GradeCalc – hinnete kalkulaator"><span data-icon="calculator"></span><span>GradeCalc</span></button>
         </nav>
         <p class="nav-label nav-label-secondary">MINU TÄHTAJAD</p>
         <nav class="side-nav" aria-label="Ülesannete filtrid">
@@ -47,13 +48,13 @@
         </div>
         <button class="secure-backup-link" type="button" id="openSecureBackup"><span aria-hidden="true">🔒</span> Krüptitud varukoopia</button>
         <button class="secure-backup-link" type="button" id="openSecureRestore">Taasta krüptitud koopia</button>
-        <p class="storage-note"><span data-icon="shield-check"></span> 1.1 · Andmed sinu seadmes (krüpteerimata)</p>
+        <p class="storage-note"><span data-icon="shield-check"></span> 2.0 · Andmed sinu seadmes (krüpteerimata)</p>
       </div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div class="topbar-text"><span class="eyebrow">SINU ÕPINGUTE TÖÖLAUD</span><h1>Tere! <span class="wave">✳</span></h1></div>
+        <div class="topbar-text"><span class="eyebrow" id="topbarEyebrow">SINU ÕPINGUTE TÖÖLAUD</span><h1 id="topbarTitle">Tere! <span class="wave">✳</span></h1></div>
         <div class="topbar-actions"><p id="todayLabel" class="today-label"></p><button class="btn btn-primary desktop-add" id="openAddTop" type="button"><span data-icon="plus"></span> Lisa tähtaeg</button></div>
       </header>
 
@@ -90,6 +91,12 @@
         </div>
         <div id="listView" class="list-view" aria-live="polite"></div>
         <div id="calendarView" class="calendar-view" hidden></div>
+      </section>
+      <section class="grades-page" id="gradeView" aria-labelledby="gradePageTitle" hidden>
+        <div class="gc-hero"><div><div class="gc-eyebrow">GRADE CALC · HINNETE KALKULAATOR</div><h2 id="gradePageTitle">Tea, mis hinne <em>eksamil vaja.</em></h2><p>Sisesta tööde tulemused ja osakaalud. Arvutame aine kaalutud keskmise ning eesmärgi saavutamiseks vajaliku eksamitulemuse.</p></div><div class="gc-hero-symbol" aria-hidden="true">∑<small>100%</small></div></div>
+        <div class="gc-layout"><aside class="gc-courses" aria-label="Õppeainete loend"><div class="gc-courses-top"><h3>Minu ained</h3><button id="gcAddCourse" type="button" class="gc-square-btn" aria-label="Lisa õppeaine" title="Lisa õppeaine">+</button></div><div id="gcCourseList" class="gc-course-list"></div><button id="gcDemo" type="button" class="gc-demo-btn">+ Proovi näidisarvutust</button></aside>
+        <div id="gcDetails" class="gc-detail" aria-live="polite"></div></div>
+        <p class="gc-warning" id="gcStorageError" role="alert" hidden>Hinnete salvestuses on viga. Andmete kaitseks on muutmine peatatud. Ekspordi olemasolevad andmed või kontrolli brauseri salvestusruumi.</p>
       </section>
       <footer class="page-footer"><span>deadline<span class="brand-dot">.</span> — rohkem aega olulisele.</span><span>Töötab ka ilma internetita · <button type="button" id="footerBackup">Salvesta andmed</button></span></footer>
     </main>
@@ -144,7 +151,19 @@
       <div class="dialog-actions"><button class="btn btn-quiet close-secure-restore" type="button">Tühista</button><button class="btn btn-primary" id="confirmSecureRestore" type="submit">Taasta ülesanded</button></div>
     </form>
   </dialog>
+  <dialog class="task-dialog gc-form-dialog" id="gcCourseDialog" aria-labelledby="gcCourseDialogTitle"><form id="gcCourseForm" novalidate>
+    <div class="dialog-heading"><div><div class="dialog-eyebrow">GRADE CALC</div><h2 id="gcCourseDialogTitle">Uus õppeaine</h2><p>Lisa aine ja soovitud lõpptulemus.</p></div><button id="gcCloseCourse" type="button" class="icon-btn close-dialog" aria-label="Sulge">×</button></div>
+    <div class="form-body"><label for="gcCourseName">Õppeaine nimi</label><input class="form-control" id="gcCourseName" maxlength="100" required placeholder="Nt Majandusteooria"><label for="gcCourseTarget">Soovitud lõpptulemus (%)</label><input class="form-control" id="gcCourseTarget" type="number" min="0" max="100" step="0.1" required value="80"><p class="gc-form-hint">Näiteks 80 tähendab, et soovid saada vähemalt 80% lõpphindest.</p><p id="gcCourseError" class="gc-form-error" role="alert" hidden></p></div>
+    <div class="dialog-actions"><button id="gcCancelCourse" type="button" class="btn btn-quiet">Tühista</button><button class="btn btn-primary" type="submit">Salvesta aine</button></div>
+  </form></dialog>
+  <dialog class="task-dialog gc-form-dialog" id="gcItemDialog" aria-labelledby="gcItemDialogTitle"><form id="gcItemForm" novalidate>
+    <div class="dialog-heading"><div><div class="dialog-eyebrow">GRADE CALC</div><h2 id="gcItemDialogTitle">Lisa hinde komponent</h2><p>Ühes aines peab tööde osakaalude summa olema 100%.</p></div><button id="gcCloseItem" type="button" class="icon-btn close-dialog" aria-label="Sulge">×</button></div>
+    <div class="form-body"><label for="gcItemName">Töö nimi</label><input class="form-control" id="gcItemName" maxlength="100" placeholder="Nt Kontrolltöö 1" required><div class="form-grid"><div><label for="gcItemKind">Töö tüüp</label><select class="form-control" id="gcItemKind"><option value="test">Kontrolltöö</option><option value="exam">Eksam</option><option value="homework">Kodutöö</option><option value="project">Projekt</option><option value="other">Muu</option></select></div><div><label for="gcItemWeight">Osakaal (%)</label><input class="form-control" id="gcItemWeight" type="number" min="0.1" max="100" step="0.1" placeholder="Nt 30" required></div></div><label for="gcItemScore">Tulemus (%) <span class="optional">(valikuline)</span></label><input class="form-control" id="gcItemScore" type="number" min="0" max="100" step="0.1" placeholder="Jäta tühjaks, kui tulemus pole teada"><p class="gc-form-hint">Kui eksam on veel tegemata, vali tüübiks „Eksam“ ja jäta tulemus tühjaks.</p><p id="gcItemError" class="gc-form-error" role="alert" hidden></p></div>
+    <div class="dialog-actions"><button id="gcCancelItem" type="button" class="btn btn-quiet">Tühista</button><button class="btn btn-primary" type="submit">Salvesta töö</button></div>
+  </form></dialog>
   <script src="./app.js" defer></script>
+  <script src="./grade-math.js" defer></script>
+  <script src="./grades.js" defer></script>
   <script src="./security.js" defer></script>
 </body>
 </html>

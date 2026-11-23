@@ -26,7 +26,7 @@
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const key = await derive(password,salt);
-    const payload = encoder.encode(JSON.stringify({app:'Deadline',version:1,tasks}));
+    const payload = encoder.encode(JSON.stringify({app:'Deadline',version:3,tasks,courses:globalThis.DeadlineGrades.snapshot()}));
     const encrypted = await crypto.subtle.encrypt({name:'AES-GCM',iv},key,payload);
     return JSON.stringify({app:'Deadline',version:2,encrypted:true,kdf:'PBKDF2-SHA256',iterations:ITERATIONS,cipher:'AES-256-GCM',salt:byteToBase64(salt),iv:byteToBase64(iv),payload:byteToBase64(new Uint8Array(encrypted))},null,2);
   }
@@ -57,13 +57,14 @@
       (t.createdAt == null || (typeof t.createdAt === 'number' && Number.isFinite(t.createdAt)));
   }
   function validatePayload(raw) {
-    if (!raw || raw.app !== 'Deadline' || raw.version !== 1 || !Array.isArray(raw.tasks) || raw.tasks.length > 5000) throw new Error('Vigane varukoopia sisu');
+    if (!raw || raw.app !== 'Deadline' || ![1,3].includes(raw.version) || !Array.isArray(raw.tasks) || raw.tasks.length > 5000) throw new Error('Vigane varukoopia sisu');
+    if(raw.version===3) globalThis.DeadlineGrades.validateCourses(raw.courses);
     const ids = new Set();
     for (const task of raw.tasks) {
       if (!isTask(task) || ids.has(task.id)) throw new Error('Varukoopia sisaldab vigaseid või korduvaid ülesandeid');
       ids.add(task.id);
     }
-    return raw.tasks;
+    return raw;
   }
   function download(content) {
     const blob = new Blob([content],{type:'application/json;charset=utf-8'});
@@ -83,12 +84,12 @@
   }
   const backupDialog = setupDialog('Backup');
   const restoreDialog = setupDialog('Restore');
-  $('openSecureBackup').addEventListener('click',()=>{
-    $('secureBackupForm').reset(); showError('backupError',''); backupDialog.showModal();
-  });
-  $('openSecureRestore').addEventListener('click',()=>{
-    $('secureRestoreForm').reset(); showError('restoreError',''); restoreDialog.showModal();
-  });
+  function openBackup() { $('secureBackupForm').reset(); showError('backupError',''); backupDialog.showModal(); }
+  $('openSecureBackup').addEventListener('click',openBackup);
+  $('footerSecureBackup').addEventListener('click',openBackup);
+  function openRestore() { $('secureRestoreForm').reset(); showError('restoreError',''); restoreDialog.showModal(); }
+  $('openSecureRestore').addEventListener('click',openRestore);
+  $('footerSecureRestore').addEventListener('click',openRestore);
   $('secureBackupForm').addEventListener('submit',async event=>{
     event.preventDefault();
     const pass = $('backupPassword').value;
@@ -97,8 +98,8 @@
     $('confirmSecureBackup').disabled = true;
     try {
       const tasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      const payload = validatePayload({app:'Deadline',version:1,tasks});
-      download(await encryptBackup(payload,pass));
+      validatePayload({app:'Deadline',version:3,tasks,courses:globalThis.DeadlineGrades.snapshot()});
+      download(await encryptBackup(tasks,pass));
       $('secureBackupForm').reset(); backupDialog.close(); announce('Krüptitud varukoopia alla laaditud');
     } catch (err) { showError('backupError', 'Varukoopiat ei saanud salvestada. Kontrolli andmeid ja brauseri õigusi.'); }
     finally { $('confirmSecureBackup').disabled = false; }
@@ -111,9 +112,10 @@
     $('confirmSecureRestore').disabled = true;
     try {
       const raw = JSON.parse(await file.text());
-      const tasks = validatePayload(await decryptBackup(raw,$('restorePassword').value));
-      if (!window.confirm(`Kas asendan kõik praegused tähtajad (${tasks.length} kirjet)? Soovi korral salvesta enne praegusest seisust varukoopia.`)) return;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      const restored = validatePayload(await decryptBackup(raw,$('restorePassword').value));
+      const grades = restored.version===3 ? restored.courses : null;
+      if (!window.confirm(grades ? `Kas asendan tähtajad (${restored.tasks.length}) ja ained (${grades.length}) krüptitud varukoopiaga?` : `Kas asendan tähtajad (${restored.tasks.length})? Ainehinded jäävad muutmata.`)) return;
+      globalThis.DeadlineGrades.restoreBundle(restored.tasks,grades);
       $('secureRestoreForm').reset(); restoreDialog.close();
       location.reload();
     } catch (err) { showError('restoreError', 'Taastamine ebaõnnestus. Kontrolli parooli, faili ja salvestusruumi.'); }

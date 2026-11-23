@@ -8,6 +8,7 @@
     project: { label: 'Projekt', plural: 'Projektid', icon: 'briefcase-business' }
   };
   const iconPaths = {
+    'calculator': '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h2m4 0h2M8 15h2m4 0h2M8 19h2m4 0h2"/>',
     'layout-dashboard': '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
     'calendar-days': '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
     'layers': '<path d="m12 2 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 17l9 5 9-5"/>',
@@ -238,9 +239,19 @@
     });
     $('listView').hidden = state.view !== 'list';
     $('calendarView').hidden = state.view !== 'calendar';
+    const gradeMode = state.view === 'grades';
+    $('gradeView').hidden = !gradeMode;
+    document.body.classList.toggle('grade-mode',gradeMode);
+    document.querySelector('.hero').hidden = gradeMode;
+    document.querySelector('.stats').hidden = gradeMode;
+    document.querySelector('.workspace').hidden = gradeMode;
+    $('topbarEyebrow').textContent = gradeMode?'SINU HINNETE TÖÖLAUD':'SINU ÕPINGUTE TÖÖLAUD';
+    $('topbarTitle').textContent = gradeMode?'GradeCalc':'Tere! ✳';
+    $('openAddTop').hidden = gradeMode;
+    $('openAddMobile').hidden = gradeMode;
   }
   function render() { updateOverview(); updateControls(); renderList(); if (state.view === 'calendar') renderCalendar(); }
-  function setView(view) { if (view !== 'list' && view !== 'calendar') return; state.view = view; render(); }
+  function setView(view) { if (!['list','calendar','grades'].includes(view)) return; state.view = view; render(); }
   function openDialog(id = null, prefillDate = null) {
     state.editingId = id;
     const task = id ? state.tasks.find(t => t.id === id) : null;
@@ -323,7 +334,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function exportBackup() {
-    downloadFile(`deadline-varukoopia-${isoLocal()}.json`, JSON.stringify({app:'Deadline',version:1,exportedAt:new Date().toISOString(),tasks:state.tasks},null,2), 'application/json;charset=utf-8');
+    downloadFile(`deadline-varukoopia-${isoLocal()}.json`, JSON.stringify({app:'Deadline',version:3,exportedAt:new Date().toISOString(),tasks:state.tasks,courses:globalThis.DeadlineGrades.snapshot()},null,2), 'application/json;charset=utf-8');
     showToast('Varukoopia salvestatud');
   }
   async function importBackup(event) {
@@ -337,11 +348,14 @@
       const seen = new Set();
       const imported = array.map(normalizeTask).filter(t => { if (!t || seen.has(t.id)) return false; seen.add(t.id); return true; });
       if (array.length && !imported.length) throw Error('Failis polnud kehtivaid tähtaegu');
-      if (!window.confirm(`Kas asendan kõik praegused tähtajad varukoopia ${imported.length} ülesandega? Soovi korral salvesta enne senistest andmetest varukoopia.`)) return;
       if (imported.length !== array.length) throw Error('Varukoopias on vigased kirjed');
-      if (!saveTasks(imported)) return;
-      state.tasks = imported;
-      render(); showToast(`${imported.length} ülesannet taastatud${array.length !== imported.length ? ` (${array.length - imported.length} vigast kirjet jäeti vahele)` : ''}`);
+      const hasGrades = raw && !Array.isArray(raw) && raw.version === 3;
+      const restoredGrades = hasGrades ? globalThis.DeadlineGrades.validateCourses(raw.courses) : null;
+      if (!window.confirm(hasGrades
+        ? `Kas asendan kõik praegused tähtajad ja ainehinded varukoopiaga (${imported.length} tähtaega, ${restoredGrades.length} ainet)?`
+        : `Kas asendan kõik praegused tähtajad varukoopia ${imported.length} ülesandega? Olemasolevaid ainehindeid see ei muuda.`)) return;
+      globalThis.DeadlineGrades.restoreBundle(imported,restoredGrades);
+      location.reload();
     } catch (err) { console.warn('Import ebaõnnestus',err); showToast('Varukoopia lugemine ebaõnnestus. Kontrolli faili.'); }
   }
   function icsEscape(str) { return String(str ?? '').replace(/\\/g,'\\\\').replace(/\r\n?|\n/g,'\\n').replace(/[,;]/g,ch=>'\\'+ch); }

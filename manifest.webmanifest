@@ -1,7 +1,7 @@
 {
-  "name": "Deadline – tähtaegade jälgija",
+  "name": "Deadline 2.0 – tähtajad ja hinded",
   "short_name": "Deadline",
-  "description": "Eksamite, kodutööde ja projektide tähtaegade jälgija tudengile.",
+  "description": "Tähtaegade jälgija ja GradeCalc hinnete kalkulaator tudengile.",
   "lang": "et",
   "start_url": "./",
   "scope": "./",

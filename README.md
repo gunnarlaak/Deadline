@@ -1,34 +1,45 @@
-# Deadline 1.1 – tähtaegade jälgija
+# Deadline 2.0 – tähtajad ja GradeCalc
 
-Eestikeelne mobiilis ja arvutis töötav veebirakendus eksamite, kodutööde ja projektide tähtaegade jälgimiseks.
+Eestikeelne tudengi veebirakendus GitHub Pagesi jaoks. Töötab telefonis ja arvutis, pärast esmast laadimist ka võrguühenduseta.
 
-## Võimalused
-- Tähtaegade lisamine, muutmine, kustutamine, tehtuks märkimine ning tähtaegade loend ja kalender.
-- Tähtaegade esiletõstmine ja automaatne päevade arvestus.
-- JSON-varukoopia (tavaline) ning **AES-256-GCM-ga krüptitud JSON-varukoopia** (parooliga).
-- Krüptitud varukoopia taastamine, pärand-varukoopiate import.
-- .ics-kalendrisse eksportimine.
-- Offline-tugi pärast esmast laadimist (PWA).
+## Tähtajad
+- Eksamite, kodutööde ja projektide tähtajad; lisamine, muutmine, kustutamine ja tehtuks märkimine.
+- Kiireloomulised tööd, päevade loendur, kalender, otsing ja filtreerimine.
+- ICS-kalendrisse eksportimine.
 
-## 1.1 turvaparandused
-- `Content-Security-Policy` metatagiga piiratud skriptid, stiilid, ühendused ja objektid. Kõik JavaScripti ja CSS-i failid on lokaalsed, väliseid teeke pole.
-- Kaitse pahatahtlike või vigaste ülesandetüüpide vastu (`Object.hasOwn`).
-- Muudatus loetakse salvestatuks alles pärast edukat `localStorage` kirjutamist.
-- Importimisel vigased kirjed ei asenda olemasolevaid ülesandeid.
-- Valikulised krüptitud varukoopiad: PBKDF2-SHA256 (310 000 iteratsiooni), juhuslik sool ja AES-256-GCM. Krüpteerimine käib seadmes; parooli serverile ei saadeta.
-- Offline-teenusetöötaja puhverdab ainult äpi enda fikseeritud failid.
+## GradeCalc (uus 2.0)
+- Lisa kuni 50 ainet ja igasse kuni 60 hindekomponenti.
+- Sisesta tööde tüübid, tulemused protsentides (0–100) ja osakaalud (0,1–100%).
+- Määra iga aine soovitud lõpptulemus protsentides (0–100).
+- Arvuta tehtud tööde kaalutud keskmine, seni kogutud lõpphinde punktid ja hinnatud tööde osakaal.
+- Kui kaalud annavad täpselt 100% ja **ainult üks hinne on teadmata ning see on eksam**, arvuta minimaalne vajalik eksamitulemus.
+- Eraldi teated puuduva või liiga suure osakaalude summa, rohkemate hindamata tööde ning võimatu eesmärgi korral.
+- Eesmärgi juba saavutamisel näita, et matemaatiliselt piisab eksamil 0%-st; õppeaine läbimise eraldi miinimumnõudeid ei arvestata.
+- Näidisarvutus: 80% × 30% + 70% × 30% + eksam × 40% = 80%, mistõttu eksamil on vaja vähemalt **87,5%**.
 
-## Olulised piirangud
-- **Kohalikud ülesanded on brauseri `localStorage`-s endiselt krüpteerimata.** Parooliga on kaitstud ainult allalaaditud krüptitud varukoopia.
-- `github.io` projektikaustad jagavad sama päritolu (origin) salvestusruumi. Sama konto teises projektis töötav JavaScript võib pääseda juurde Deadline'i andmetele. Paremaks eraldatuseks kasuta **eraldi domeeni või alamdomeeni**.
-- GitHub Pages ei lase staatilise projekti kaudu määrata täiendavaid kohandatud HTTP-turvapäiseid (näiteks CSP `frame-ancestors`). CSP on siin metatagina.
-- Brauseri andmete kustutamisel kaovad tähtajad; tee regulaarselt varukoopiaid. Kadunud krüptoparooli ei ole võimalik taastada.
-- Ei ole kasutajakontosid, sünkroonimist ega tõuketeavitusi.
-- Avalik lähtekood ei sisalda kasutajate tähtaegu.
+### Arvutus
+Lõpphinne = Σ(töö tulemus (%) × töö osakaal (%)) / 100.
 
-## Avaldamine GitHub Pagesis
-1. Repository → Settings → Pages.
-2. Source: Deploy from a branch → `main` → `/(root)` → Save.
-3. Ava `https://gunnarlaak.github.io/Deadline/`.
+Eksamilt vajalik tulemus = (soovitud lõpptulemus − seni kogutud kaalutud punktid) × 100 / eksami kaal (%).
 
-**Äpi kasutamiseks pole serverit ega API-võtit vaja.**
+Tulemust näidatakse ülespoole ümardatult 0,1 protsendipunkti täpsusega, et näidatud hinne kindlasti vastaks eesmärgile.
+
+**NB!** Mõnel kursusel on lisaks üldisele keskmisele eraldi eksami või tööde läbimise miinimumnõuded. GradeCalc ei arvesta neid automaatselt. 0–100% ei võrdu automaatselt Eesti 0–5 hindeskaalaga; hinnete piirid sõltuvad koolist.
+
+## Andmed, varukoopia ja turvalisus
+- Tähtajad salvestatakse senisesse `deadline.student.tasks.v1` võtmesse, nii et 1.1 andmed säilivad.
+- GradeCalc ained salvestatakse eraldi `deadline.student.grades.v2` võtmesse (`localStorage`).
+- Nii tavalised kui ka AES-256-GCM-ga krüptitud varukoopiad sisaldavad nüüd **tähtaegu ja hindeid**.
+- Vanade, versiooni 1 varukoopiate import jätab olemasolevad ainehinded puutumata.
+- Krüptitud varukoopia: PBKDF2-SHA256 (310 000 iteratsiooni), juhuslik sool, AES-256-GCM; parooli serverisse ei saadeta.
+- CSP keelab välised skriptid ja ühendused; kasutajatekst HTML-iks renderdamisel kodeeritakse; andmeid valideeritakse ka importimisel.
+- Kõik kasutaja andmed jäävad brauserisse krüpteerimata. **Sama `gunnarlaak.github.io` päritolu eri projektid jagavad localStorage'i** – eraldi domeen aitab isolatsioonile kaasa. Krüptitud on ainult allalaaditud krüptitud varukoopia.
+- Äpp ei paku sisselogimist, seadmetevahelist sünkroonimist ega automaatseid teavitusi.
+
+## GitHub Pages
+Settings → Pages → Build and deployment → **Deploy from a branch**, branch **main**, folder **/(root)** → Save.
+
+Siht-URL: https://gunnarlaak.github.io/Deadline/
+
+## Failid
+`index.html`, `styles.css`, `app.js`, `grade-math.js`, `grades.js`, `security.js`, `sw.js`, `manifest.webmanifest`, `icons/`.
